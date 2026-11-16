@@ -1,6 +1,6 @@
 {
   "name": "dsh-sidebar-function-manager",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DSH 插件「侧边功能管理」：勾选侧栏保留哪些入口、拖动手柄调整顺序，其余全局面板收进「更多」菜单。",
   "type": "module",
   "license": "MIT",

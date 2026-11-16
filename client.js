@@ -695,12 +695,15 @@ function createUi(react, createPortal) {
     return {
       inject: ['slots', 'locale'],
       apply(ctx) {
-        /* 改名前的老键：新键还不存在时搬过来，然后删掉，避免两份配置各自漂移。 */
+        /*
+         * 改名前的老键：新键还不存在时复制一份过来。
+         * 老键故意保留（不删）：迁移若在新键写入前失败，或用户想回退到 0.1.x，原配置还在；
+         * 之后新键已存在就不再读它，两份不会互相覆盖。
+         */
         try {
           const legacy = localStorage.getItem(LEGACY_PREFS_KEY);
           if (legacy && !localStorage.getItem(PREFS_KEY)) {
             localStorage.setItem(PREFS_KEY, legacy);
-            localStorage.removeItem(LEGACY_PREFS_KEY);
           }
         } catch {
           /* localStorage 不可用（隐私模式等）时按默认值跑 */
