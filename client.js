@@ -699,6 +699,7 @@ function createUi(react, createPortal) {
          * 改名前的老键：新键还不存在时复制一份过来。
          * 老键故意保留（不删）：迁移若在新键写入前失败，或用户想回退到 0.1.x，原配置还在；
          * 之后新键已存在就不再读它，两份不会互相覆盖。
+         * 取舍：回退到 0.1.x 期间的修改不会合并回来，以新键为准。
          */
         try {
           const legacy = localStorage.getItem(LEGACY_PREFS_KEY);
