@@ -2,10 +2,14 @@
  * Client half of dsh-sidebar-compact.
  *
  * 侧栏「全局面板」只显示用户勾选的面板，其余面板（插件 / 跨会话消息 / 自动化任务等）
- * 收进侧栏「更多」菜单；控制入口在 设置 →「侧栏收纳」，勾选结果存 localStorage。
+ * 收进侧栏「更多」菜单；控制入口在 设置 →「侧栏收纳」，勾选与排序结果存 localStorage。
  *
- * 设置页用 skill 内联的 client-ui kit（v3）：Section / SettingsCard / SettingRow / Switch，
- * 字号只用官方档位（10/11/12/13/15）。
+ * 排序：设置页每行左侧有拖动手柄（HTML5 draggable，交互对齐宿主「模型目录」：拖起行半透明、
+ * 落点画插入线）；面板顺序通过 CSS `order` 施加到 `nav[class*=panelList]` 的子节点上，
+ * 不动宿主 DOM 结构。触屏没有 HTML5 拖放，退化为行内 ↑ ↓ 按钮；键盘同用 ↑ ↓。
+ *
+ * 设置页用 skill 内联的 client-ui kit（v4）：Section / SettingsCard / SettingRow / Switch，
+ * 字号只用官方档位（10/11/12/13/15/18）。
  */
 window.__ModuleLoader__.load({
   id: 'dsh-sidebar-compact',
@@ -207,13 +211,13 @@ function createUi(react, createPortal) {
     },
   }, children)
 
-  /** 左标签 + 右控件的一行。 */
+  /** 左标签 + 右控件的一行。副标签行高与 TYPE.micro 对齐（11/14），复用行高就不会差 2px。 */
   const SettingRow = ({ label, hint, children }) => h('div', {
     style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minWidth: 0 },
   },
   h('div', { style: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 } },
-    h('span', { style: { fontSize: 13, lineHeight: '20px', color: T.text1 } }, label),
-    hint ? h('span', { style: { fontSize: 11, lineHeight: '16px', color: T.text2 } }, hint) : null),
+    h('span', { style: TYPE.body }, label),
+    hint ? h('span', { style: { ...TYPE.micro, ...TYPE.ellipsis } }, hint) : null),
   children)
 
   /** 药丸开关：36×20，白色底 + 深色旋钮，与官方设置页一致。 */
@@ -575,16 +579,18 @@ function createUi(react, createPortal) {
 }
 
     const ui = createUi(React, createPortal);
-    const { Section, SettingsCard, SettingRow, Switch, createStore, useStore } = ui;
+    const { Section, SettingsCard, SettingRow, Switch, TYPE, createStore, useStore } = ui;
 
     /** 默认留在侧栏上的面板 id（dsh-web-chat 的「聊天」）。 */
     const DEFAULT_KEPT = ['dsh-web-chat'];
-    /** 勾选结果（哪些面板留在侧栏）的存储键；kit store 存 { kept: [...] }。 */
+    /** 勾选与排序结果的存储键；kit store 存 { kept: [...], order: [...] }。 */
     const PREFS_KEY = 'dsh-sidebar-compact:prefs';
     /** 面板行所在的导航容器选择器（CSS Modules 类名固定带 panelList 片段）。 */
     const NAV_SELECTOR = 'nav[class*="panelList"]';
+    /** 拖动落点插入线的颜色（宿主 modelList 用的同一个状态色 token）。 */
+    const DROP_COLOR = 'var(--dsw-alias-state-business-primary, #4d7cff)';
 
-    /** 只留「更多」菜单行的样式；设置页交给 kit，不再自绘。 */
+    /** 菜单行、拖动行的样式；设置页其余部分交给 kit。 */
     const CSS = [
       '.dsh-sidebar-compact-row{display:flex;align-items:center;gap:4px;width:100%;',
       'box-sizing:border-box;min-height:34px;padding:7px 8px;border:0;',
@@ -598,6 +604,32 @@ function createUi(react, createPortal) {
       'flex:none;width:16px;height:16px;color:var(--dsw-alias-label-secondary)}',
       '.dsh-sidebar-compact-glyph svg{display:block;width:14px;height:14px}',
       '.dsh-sidebar-compact-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      /* 拖动排序（对齐宿主「模型目录」的视觉：拖起行半透明，落点上下画插入线） */
+      '.dsh-sidebar-compact-entry{position:relative;min-width:0}',
+      '.dsh-sidebar-compact-entry[data-dragging]{opacity:.5}',
+      '.dsh-sidebar-compact-entry[data-drop-target]{z-index:1}',
+      '.dsh-sidebar-compact-entry[data-drop-target="before"]::before,',
+      '.dsh-sidebar-compact-entry[data-drop-target="after"]::after{content:"";position:absolute;',
+      'left:0;right:0;height:12px;pointer-events:none;background:',
+      `linear-gradient(55deg,transparent calc(50% - 1px),${DROP_COLOR} calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px)) 0 0/5px 7px no-repeat,`,
+      `linear-gradient(125deg,transparent calc(50% - 1px),${DROP_COLOR} calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px)) 0 5px/5px 7px no-repeat,`,
+      `linear-gradient(${DROP_COLOR} 0 0) 4px 5px/calc(100% - 4px) 2px no-repeat}`,
+      '.dsh-sidebar-compact-entry[data-drop-target="before"]::before{top:-13px}',
+      '.dsh-sidebar-compact-entry[data-drop-target="after"]::after{bottom:-13px}',
+      '.dsh-sidebar-compact-handle{display:inline-flex;align-items:center;justify-content:center;',
+      'flex:none;width:24px;height:24px;padding:0;border:0;border-radius:6px;background:transparent;',
+      'color:var(--dsw-alias-label-tertiary,#8b929c);cursor:grab}',
+      '.dsh-sidebar-compact-handle:hover{background:var(--dsw-alias-interactive-bg-hover);',
+      'color:var(--dsw-alias-label-secondary)}',
+      '.dsh-sidebar-compact-handle:active{cursor:grabbing}',
+      /* 触屏没有 HTML5 拖放：手柄换成行内 ↑ ↓；桌面把 ↑ ↓ 收起来，不占位 */
+      '.dsh-sidebar-compact-move{display:none;align-items:center;justify-content:center;flex:none;',
+      'width:24px;height:24px;padding:0;border:0;border-radius:6px;background:transparent;',
+      'color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;font-size:12px;line-height:16px}',
+      '.dsh-sidebar-compact-move:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.dsh-sidebar-compact-move[disabled]{opacity:.35;cursor:default}',
+      '@media (hover:none){.dsh-sidebar-compact-handle{display:none}',
+      '.dsh-sidebar-compact-move{display:inline-flex}}',
     ].join('');
 
     /** 读取一个面板入口的显示名（注册时是可延迟求值的函数）。 */
@@ -622,27 +654,79 @@ function createUi(react, createPortal) {
         .sort((a, b) => a.order - b.order);
     }
 
+    /**
+     * 按用户保存的顺序重排面板。
+     * 未记录的新面板保持宿主顺序排在最后，不会被排序功能吞掉。
+     */
+    function applyOrder(panels, order) {
+      const rank = new Map();
+      (Array.isArray(order) ? order : []).forEach((id, index) => {
+        if (!rank.has(id)) rank.set(id, index);
+      });
+      const ranked = [];
+      const rest = [];
+      for (const panel of panels) (rank.has(panel.id) ? ranked : rest).push(panel);
+      ranked.sort((a, b) => rank.get(a.id) - rank.get(b.id));
+      return ranked.concat(rest);
+    }
+
+    /** 把 id 挪到目标行前/后，返回新顺序（纯函数，拖动与键盘共用）。 */
+    function moveBefore(ids, id, targetId, after) {
+      const next = ids.filter(item => item !== id);
+      const at = next.indexOf(targetId);
+      if (at < 0) return ids;
+      next.splice(after ? at + 1 : at, 0, id);
+      return next;
+    }
+
+    /** 上下挪一位，返回新顺序（键盘 ↑ ↓ 与触屏按钮共用）。 */
+    function moveBy(ids, id, delta) {
+      const from = ids.indexOf(id);
+      const to = from + delta;
+      if (from < 0 || to < 0 || to >= ids.length) return ids;
+      const next = ids.slice();
+      next.splice(from, 1);
+      next.splice(to, 0, id);
+      return next;
+    }
+
     return {
       inject: ['slots', 'locale'],
       apply(ctx) {
-        const prefs = createStore(PREFS_KEY, { kept: DEFAULT_KEPT });
+        const prefs = createStore(PREFS_KEY, { kept: DEFAULT_KEPT, order: [] });
         const style = document.createElement('style');
         style.dataset.plugin = 'dsh-sidebar-compact';
         style.dataset.pluginCss = 'dsh-sidebar-compact/menu.css';
         document.head.appendChild(style);
 
-        /** 当前应收进「更多」的面板。 */
-        const foldedPanels = () => {
-          const kept = prefs.value.kept || [];
-          return listPanels(ctx).filter(panel => !kept.includes(panel.id));
+        /** 按用户顺序排列的侧栏面板。 */
+        const orderedPanels = () => applyOrder(listPanels(ctx), prefs.value.order || []);
+
+        /**
+         * 面板行的选择器。
+         * 0.2.2 起宿主在按钮外包了一层 div.panelEntry（nav > div > button）；
+         * 更早的版本是 nav 的直接子 button，两种布局都要能命中。
+         */
+        const panelSelector = (label) => {
+          const quoted = JSON.stringify(label);
+          return `${NAV_SELECTOR} > :has(button[aria-label=${quoted}]),`
+            + `${NAV_SELECTOR} > button[aria-label=${quoted}]`;
         };
 
-        /** 按当前面板入口、勾选结果与语言重新生成隐藏规则。 */
+        /** 按当前面板入口、勾选结果与自定义顺序重新生成隐藏与排序规则。 */
         const paint = () => {
-          const selectors = foldedPanels()
-            .map(panel => `${NAV_SELECTOR} > button[aria-label=${JSON.stringify(panel.label)}]`);
-          style.textContent = CSS
-            + (selectors.length > 0 ? `${selectors.join(',')}{display:none !important}` : '');
+          const kept = prefs.value.kept || [];
+          const panels = orderedPanels();
+          /* 用负的 order 值：宿主「更多」菜单是 nav 的最后一个子节点且 order 默认 0，
+             这样面板永远排在它前面，不需要知道菜单锚点的类名。 */
+          const orderRules = panels
+            .map((panel, index) => `${panelSelector(panel.label)}{order:${index - 100}}`)
+            .join('');
+          const hidden = panels
+            .filter(panel => !kept.includes(panel.id))
+            .map(panel => panelSelector(panel.label));
+          style.textContent = CSS + orderRules
+            + (hidden.length > 0 ? `${hidden.join(',')}{display:none !important}` : '');
         };
 
         ctx.effect(() => {
@@ -658,11 +742,12 @@ function createUi(react, createPortal) {
           };
         }, 'dsh-sidebar-compact: folded rows');
 
-        /** 「更多」菜单里的收纳行：复用该面板在侧栏上的原始图标。 */
+        /** 「更多」菜单里的收纳行：按自定义顺序排列，复用该面板在侧栏上的原始图标。 */
         function FoldedPanelRows({ onOpen, onDismiss }) {
-          /** 勾选变化后重渲染，收起/放回的面板立刻同步。 */
+          /** 勾选/排序变化后重渲染，收起、放回的面板立刻同步。 */
           useStore(prefs);
-          const fold = foldedPanels();
+          const kept = prefs.value.kept || [];
+          const fold = orderedPanels().filter(panel => !kept.includes(panel.id));
           /** 菜单会在 pointerdown 后收起，因此选中动作必须比 click 更早触发一次。 */
           const fired = React.useRef(new Set());
           const activate = (id) => {
@@ -694,31 +779,157 @@ function createUi(react, createPortal) {
           );
         }
 
-        /** 设置页：逐个面板切换「显示在侧栏」/「收进更多」。 */
+        /** 拖动手柄图标（三条横线，与宿主模型目录同款）。 */
+        const DragHandle = () => h('svg', {
+          width: 14,
+          height: 14,
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 2,
+          strokeLinecap: 'round',
+          'aria-hidden': 'true',
+        }, h('path', { d: 'M4 7h16M4 12h16M4 17h16' }));
+
+        /** 触屏 / 键盘用的上移、下移箭头（不依赖字体里的 ↑ ↓ 字形）。 */
+        const MoveIcon = ({ up }) => h('svg', {
+          width: 12,
+          height: 12,
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 2.5,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          'aria-hidden': 'true',
+        }, h('path', { d: up ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6' }));
+
+        /**
+         * 设置页：开关某一面板是否留在侧栏，拖动左侧手柄调整顺序。
+         * 拖动走宿主同款 HTML5 draggable（dragstart / dragover / drop）；
+         * 触屏没有 HTML5 拖放，退化成本行的 ↑ ↓ 按钮，键盘同用 ↑ ↓。
+         */
         function SidebarEntriesSettings() {
-          const { kept } = useStore(prefs);
-          const panels = listPanels(ctx);
+          const current = useStore(prefs);
+          const kept = current.kept || [];
+          const panels = applyOrder(listPanels(ctx), current.order || []);
+          const ids = panels.map(panel => panel.id);
+          /** { id, overId, position }：正在拖动哪一行、落在哪一行的前/后。 */
+          const [drag, setDrag] = React.useState(null);
+
+          const commit = (next) => prefs.patch({ order: next });
+
           const toggle = (id) => {
             const next = kept.includes(id) ? kept.filter(item => item !== id) : [...kept, id];
             prefs.patch({ kept: next });
           };
+
+          const onDragStart = (event, id) => {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', id);
+            const row = event.currentTarget.closest('[data-entry]');
+            if (row && typeof event.dataTransfer.setDragImage === 'function') {
+              event.dataTransfer.setDragImage(row, 16, 16);
+            }
+            setDrag({ id, overId: null, position: 'before' });
+          };
+
+          const onDragOver = (event, id) => {
+            if (!drag || drag.id === id) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            const rect = event.currentTarget.getBoundingClientRect();
+            const position = event.clientY > rect.top + rect.height / 2 ? 'after' : 'before';
+            if (drag.overId !== id || drag.position !== position) {
+              setDrag({ id: drag.id, overId: id, position });
+            }
+          };
+
+          const onDrop = (event, id) => {
+            if (!drag) return;
+            event.preventDefault();
+            if (drag.overId) commit(moveBefore(ids, drag.id, id, drag.position === 'after'));
+            setDrag(null);
+          };
+
+          const onLeave = (event, id) => {
+            if (!drag || drag.overId !== id) return;
+            const next = event.relatedTarget;
+            if (next && typeof Node !== 'undefined' && next instanceof Node && event.currentTarget.contains(next)) return;
+            setDrag({ id: drag.id, overId: null, position: drag.position });
+          };
+
           return h(
             Section,
             {
               title: '侧栏收纳',
-              description: '勾选的面板显示在侧栏，未勾选的收进侧栏「更多」菜单。',
+              description: '勾选的面板显示在侧栏，未勾选的收进侧栏「更多」菜单；拖动行首手柄（或聚焦后按 ↑ ↓）调整顺序。',
             },
             h(
               SettingsCard,
               null,
-              panels.map(panel => h(
-                SettingRow,
-                { key: panel.id, label: panel.label, hint: panel.id },
-                h(Switch, {
-                  checked: kept.includes(panel.id),
-                  onChange: () => toggle(panel.id),
-                  title: panel.label,
-                }),
+              panels.map((panel, index) => h(
+                'div',
+                {
+                  key: panel.id,
+                  'data-entry': panel.id,
+                  className: 'dsh-sidebar-compact-entry',
+                  'data-dragging': drag && drag.id === panel.id ? 'true' : undefined,
+                  'data-drop-target': drag && drag.overId === panel.id ? drag.position : undefined,
+                  onDragOver: event => onDragOver(event, panel.id),
+                  onDragLeave: event => onLeave(event, panel.id),
+                  onDrop: event => onDrop(event, panel.id),
+                  style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 },
+                },
+                h('button', {
+                  key: 'handle',
+                  type: 'button',
+                  className: 'dsh-sidebar-compact-handle',
+                  draggable: true,
+                  title: '拖动排序（触屏用 ↑ ↓）',
+                  'aria-label': `拖动排序：${panel.label}`,
+                  'aria-keyshortcuts': 'ArrowUp ArrowDown',
+                  onDragStart: event => onDragStart(event, panel.id),
+                  onDragEnd: () => setDrag(null),
+                  onKeyDown: (event) => {
+                    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+                    event.preventDefault();
+                    commit(moveBy(ids, panel.id, event.key === 'ArrowUp' ? -1 : 1));
+                  },
+                }, h(DragHandle, null)),
+                h(
+                  'div',
+                  { key: 'row', style: { flex: '1 1 auto', minWidth: 0 } },
+                  h(
+                    SettingRow,
+                    { label: panel.label, hint: panel.id },
+                    h(
+                      'div',
+                      { style: { display: 'flex', alignItems: 'center', gap: 8, flex: 'none' } },
+                      h(Switch, {
+                        checked: kept.includes(panel.id),
+                        onChange: () => toggle(panel.id),
+                        title: panel.label,
+                      }),
+                      h('button', {
+                        type: 'button',
+                        className: 'dsh-sidebar-compact-move',
+                        title: '上移',
+                        'aria-label': `上移 ${panel.label}`,
+                        disabled: index === 0,
+                        onClick: () => commit(moveBy(ids, panel.id, -1)),
+                      }, h(MoveIcon, { up: true })),
+                      h('button', {
+                        type: 'button',
+                        className: 'dsh-sidebar-compact-move',
+                        title: '下移',
+                        'aria-label': `下移 ${panel.label}`,
+                        disabled: index === panels.length - 1,
+                        onClick: () => commit(moveBy(ids, panel.id, 1)),
+                      }, h(MoveIcon, { up: false })),
+                    ),
+                  ),
+                ),
               )),
             ),
           );
