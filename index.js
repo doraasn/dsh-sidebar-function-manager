@@ -1,2 +1,2 @@
-/** Host half of dsh-sidebar-compact; the Client module owns everything visible. */
+/** Host half of dsh-sidebar-function-manager; the Client module owns everything visible. */
 export function apply() {}

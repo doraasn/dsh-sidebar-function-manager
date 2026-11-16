@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Sidebar Compact",
-    "description": "Keeps only the entries you tick in the sidebar and folds the other global panels into the More menu."
+    "title": "Sidebar Function Manager",
+    "description": "Keeps only the entries you tick in the sidebar, ordered by drag, and folds the other global panels into the More menu."
   }
 }

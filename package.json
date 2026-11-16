@@ -1,7 +1,7 @@
 {
-  "name": "dsh-sidebar-compact",
-  "version": "0.1.7",
-  "description": "DSH 插件「侧栏收纳」：侧栏只保留勾选的入口，其余全局面板收进「更多」菜单。",
+  "name": "dsh-sidebar-function-manager",
+  "version": "0.2.0",
+  "description": "DSH 插件「侧边功能管理」：勾选侧栏保留哪些入口、拖动手柄调整顺序，其余全局面板收进「更多」菜单。",
   "type": "module",
   "license": "MIT",
   "author": "Y77H",
@@ -11,15 +11,16 @@
     "dsh-bundle",
     "sidebar",
     "layout",
+    "order",
     "more-menu"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/doraasn/dsh-sidebar-compact.git"
+    "url": "git+https://github.com/doraasn/dsh-sidebar-function-manager.git"
   },
-  "homepage": "https://github.com/doraasn/dsh-sidebar-compact#readme",
+  "homepage": "https://github.com/doraasn/dsh-sidebar-function-manager#readme",
   "bugs": {
-    "url": "https://github.com/doraasn/dsh-sidebar-compact/issues"
+    "url": "https://github.com/doraasn/dsh-sidebar-function-manager/issues"
   },
   "publishConfig": {
     "access": "public"

@@ -1,24 +1,24 @@
-# dsh-sidebar-compact · 侧栏收纳
+# dsh-sidebar-function-manager · 侧边功能管理
 
 把侧栏「全局面板」收成一条：只留你想看的入口，其余全部收进侧栏的「更多」菜单。
 
 默认只留「聊天」，插件、跨会话消息、自动化任务等都进「更多」；进哪个、留哪个、先后顺序在
-**设置 → 侧栏收纳** 里调整（勾选 + 拖动排序），改完立即生效。
+**设置 → 侧边功能管理** 里调整（勾选 + 拖动排序），改完立即生效。
 
 ## 安装
 
-DSH 插件市场（索引源 `doraasn/dsh-plugins-index`）搜索「侧栏收纳」，或直接装：
+DSH 插件市场（索引源 `doraasn/dsh-plugins-index`）搜索「侧边功能管理」，或直接装：
 
 ```
-github:doraasn/dsh-sidebar-compact
+github:doraasn/dsh-sidebar-function-manager
 ```
 
 ## 使用
 
-1. 打开 设置 → 侧栏收纳。
+1. 打开 设置 → 侧边功能管理。
 2. 勾选要留在侧栏的面板；取消勾选的会出现在侧栏「更多」里，点开照常切换。
 3. 拖动每行左侧手柄调整顺序（也可以聚焦手柄后按 ↑ ↓）；触屏没有 HTML5 拖放，改用手柄位置上的 ↑ ↓ 按钮。
-4. 勾选与排序结果保存在本机 `localStorage`（键 `dsh-sidebar-compact:prefs`），桌面端和网页端各自保存。
+4. 勾选与排序结果保存在本机 `localStorage`（键 `dsh-sidebar-function-manager:prefs`），桌面端和网页端各自保存。
 
 新装的面板默认收进「更多」，不会打断侧栏布局；它的顺序排在已有面板之后。
 

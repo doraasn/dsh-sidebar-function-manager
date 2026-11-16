@@ -1,8 +1,8 @@
 /**
- * Client half of dsh-sidebar-compact.
+ * Client half of dsh-sidebar-function-manager.
  *
  * 侧栏「全局面板」只显示用户勾选的面板，其余面板（插件 / 跨会话消息 / 自动化任务等）
- * 收进侧栏「更多」菜单；控制入口在 设置 →「侧栏收纳」，勾选与排序结果存 localStorage。
+ * 收进侧栏「更多」菜单；控制入口在 设置 →「侧边功能管理」，勾选与排序结果存 localStorage。
  *
  * 排序：设置页每行左侧有拖动手柄（HTML5 draggable，交互对齐宿主「模型目录」：拖起行半透明、
  * 落点画插入线）；面板顺序通过 CSS `order` 施加到 `nav[class*=panelList]` 的子节点上，
@@ -12,7 +12,7 @@
  * 字号只用官方档位（10/11/12/13/15/18）。
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-sidebar-compact',
+  id: 'dsh-sidebar-function-manager',
   factory(require) {
     const React = require('react');
     const createPortal = require('react-dom').createPortal;
@@ -584,7 +584,9 @@ function createUi(react, createPortal) {
     /** 默认留在侧栏上的面板 id（dsh-web-chat 的「聊天」）。 */
     const DEFAULT_KEPT = ['dsh-web-chat'];
     /** 勾选与排序结果的存储键；kit store 存 { kept: [...], order: [...] }。 */
-    const PREFS_KEY = 'dsh-sidebar-compact:prefs';
+    const PREFS_KEY = 'dsh-sidebar-function-manager:prefs';
+    /** 改名前（0.1.x）的存储键，首次启动时迁移一次，老用户勾选不丢。 */
+    const LEGACY_PREFS_KEY = 'dsh-sidebar-compact:prefs';
     /** 面板行所在的导航容器选择器（CSS Modules 类名固定带 panelList 片段）。 */
     const NAV_SELECTOR = 'nav[class*="panelList"]';
     /** 拖动落点插入线的颜色（宿主 modelList 用的同一个状态色 token）。 */
@@ -592,44 +594,44 @@ function createUi(react, createPortal) {
 
     /** 菜单行、拖动行的样式；设置页其余部分交给 kit。 */
     const CSS = [
-      '.dsh-sidebar-compact-row{display:flex;align-items:center;gap:4px;width:100%;',
+      '.dsh-sidebar-function-manager-row{display:flex;align-items:center;gap:4px;width:100%;',
       'box-sizing:border-box;min-height:34px;padding:7px 8px;border:0;',
       'border-radius:var(--dsw-radius-md,10px);background:transparent;',
       'color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;line-height:20px;',
       'text-align:left;cursor:pointer}',
-      '.dsh-sidebar-compact-row:hover{background:var(--dsw-alias-interactive-bg-hover)}',
-      '.dsh-sidebar-compact-row:focus-visible{background:var(--dsw-alias-interactive-bg-hover);',
+      '.dsh-sidebar-function-manager-row:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.dsh-sidebar-function-manager-row:focus-visible{background:var(--dsw-alias-interactive-bg-hover);',
       'outline:none}',
-      '.dsh-sidebar-compact-glyph{display:inline-flex;align-items:center;justify-content:flex-start;',
+      '.dsh-sidebar-function-manager-glyph{display:inline-flex;align-items:center;justify-content:flex-start;',
       'flex:none;width:16px;height:16px;color:var(--dsw-alias-label-secondary)}',
-      '.dsh-sidebar-compact-glyph svg{display:block;width:14px;height:14px}',
-      '.dsh-sidebar-compact-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.dsh-sidebar-function-manager-glyph svg{display:block;width:14px;height:14px}',
+      '.dsh-sidebar-function-manager-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       /* 拖动排序（对齐宿主「模型目录」的视觉：拖起行半透明，落点上下画插入线） */
-      '.dsh-sidebar-compact-entry{position:relative;min-width:0}',
-      '.dsh-sidebar-compact-entry[data-dragging]{opacity:.5}',
-      '.dsh-sidebar-compact-entry[data-drop-target]{z-index:1}',
-      '.dsh-sidebar-compact-entry[data-drop-target="before"]::before,',
-      '.dsh-sidebar-compact-entry[data-drop-target="after"]::after{content:"";position:absolute;',
+      '.dsh-sidebar-function-manager-entry{position:relative;min-width:0}',
+      '.dsh-sidebar-function-manager-entry[data-dragging]{opacity:.5}',
+      '.dsh-sidebar-function-manager-entry[data-drop-target]{z-index:1}',
+      '.dsh-sidebar-function-manager-entry[data-drop-target="before"]::before,',
+      '.dsh-sidebar-function-manager-entry[data-drop-target="after"]::after{content:"";position:absolute;',
       'left:0;right:0;height:12px;pointer-events:none;background:',
       `linear-gradient(55deg,transparent calc(50% - 1px),${DROP_COLOR} calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px)) 0 0/5px 7px no-repeat,`,
       `linear-gradient(125deg,transparent calc(50% - 1px),${DROP_COLOR} calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px)) 0 5px/5px 7px no-repeat,`,
       `linear-gradient(${DROP_COLOR} 0 0) 4px 5px/calc(100% - 4px) 2px no-repeat}`,
-      '.dsh-sidebar-compact-entry[data-drop-target="before"]::before{top:-13px}',
-      '.dsh-sidebar-compact-entry[data-drop-target="after"]::after{bottom:-13px}',
-      '.dsh-sidebar-compact-handle{display:inline-flex;align-items:center;justify-content:center;',
+      '.dsh-sidebar-function-manager-entry[data-drop-target="before"]::before{top:-13px}',
+      '.dsh-sidebar-function-manager-entry[data-drop-target="after"]::after{bottom:-13px}',
+      '.dsh-sidebar-function-manager-handle{display:inline-flex;align-items:center;justify-content:center;',
       'flex:none;width:24px;height:24px;padding:0;border:0;border-radius:6px;background:transparent;',
       'color:var(--dsw-alias-label-tertiary,#8b929c);cursor:grab}',
-      '.dsh-sidebar-compact-handle:hover{background:var(--dsw-alias-interactive-bg-hover);',
+      '.dsh-sidebar-function-manager-handle:hover{background:var(--dsw-alias-interactive-bg-hover);',
       'color:var(--dsw-alias-label-secondary)}',
-      '.dsh-sidebar-compact-handle:active{cursor:grabbing}',
+      '.dsh-sidebar-function-manager-handle:active{cursor:grabbing}',
       /* 触屏没有 HTML5 拖放：手柄换成行内 ↑ ↓；桌面把 ↑ ↓ 收起来，不占位 */
-      '.dsh-sidebar-compact-move{display:none;align-items:center;justify-content:center;flex:none;',
+      '.dsh-sidebar-function-manager-move{display:none;align-items:center;justify-content:center;flex:none;',
       'width:24px;height:24px;padding:0;border:0;border-radius:6px;background:transparent;',
       'color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;font-size:12px;line-height:16px}',
-      '.dsh-sidebar-compact-move:hover{background:var(--dsw-alias-interactive-bg-hover)}',
-      '.dsh-sidebar-compact-move[disabled]{opacity:.35;cursor:default}',
-      '@media (hover:none){.dsh-sidebar-compact-handle{display:none}',
-      '.dsh-sidebar-compact-move{display:inline-flex}}',
+      '.dsh-sidebar-function-manager-move:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.dsh-sidebar-function-manager-move[disabled]{opacity:.35;cursor:default}',
+      '@media (hover:none){.dsh-sidebar-function-manager-handle{display:none}',
+      '.dsh-sidebar-function-manager-move{display:inline-flex}}',
     ].join('');
 
     /** 读取一个面板入口的显示名（注册时是可延迟求值的函数）。 */
@@ -693,10 +695,20 @@ function createUi(react, createPortal) {
     return {
       inject: ['slots', 'locale'],
       apply(ctx) {
+        /* 改名前的老键：新键还不存在时搬过来，然后删掉，避免两份配置各自漂移。 */
+        try {
+          const legacy = localStorage.getItem(LEGACY_PREFS_KEY);
+          if (legacy && !localStorage.getItem(PREFS_KEY)) {
+            localStorage.setItem(PREFS_KEY, legacy);
+            localStorage.removeItem(LEGACY_PREFS_KEY);
+          }
+        } catch {
+          /* localStorage 不可用（隐私模式等）时按默认值跑 */
+        }
         const prefs = createStore(PREFS_KEY, { kept: DEFAULT_KEPT, order: [] });
         const style = document.createElement('style');
-        style.dataset.plugin = 'dsh-sidebar-compact';
-        style.dataset.pluginCss = 'dsh-sidebar-compact/menu.css';
+        style.dataset.plugin = 'dsh-sidebar-function-manager';
+        style.dataset.pluginCss = 'dsh-sidebar-function-manager/menu.css';
         document.head.appendChild(style);
 
         /** 按用户顺序排列的侧栏面板。 */
@@ -740,7 +752,7 @@ function createUi(react, createPortal) {
             if (typeof offPrefs === 'function') offPrefs();
             style.remove();
           };
-        }, 'dsh-sidebar-compact: folded rows');
+        }, 'dsh-sidebar-function-manager: folded rows');
 
         /** 「更多」菜单里的收纳行：按自定义顺序排列，复用该面板在侧栏上的原始图标。 */
         function FoldedPanelRows({ onOpen, onDismiss }) {
@@ -765,16 +777,16 @@ function createUi(react, createPortal) {
                 key: panel.id,
                 type: 'button',
                 role: 'menuitem',
-                className: 'dsh-sidebar-compact-row',
+                className: 'dsh-sidebar-function-manager-row',
                 onPointerDown: () => activate(panel.id),
                 onClick: () => activate(panel.id),
               },
               h(
                 'span',
-                { key: 'glyph', className: 'dsh-sidebar-compact-glyph', 'aria-hidden': 'true' },
+                { key: 'glyph', className: 'dsh-sidebar-function-manager-glyph', 'aria-hidden': 'true' },
                 panel.Icon === null ? null : h(panel.Icon, { size: 14, active: false }),
               ),
-              h('span', { key: 'label', className: 'dsh-sidebar-compact-label' }, panel.label),
+              h('span', { key: 'label', className: 'dsh-sidebar-function-manager-label' }, panel.label),
             )),
           );
         }
@@ -862,7 +874,7 @@ function createUi(react, createPortal) {
           return h(
             Section,
             {
-              title: '侧栏收纳',
+              title: '侧边功能管理',
               description: '勾选的面板显示在侧栏，未勾选的收进侧栏「更多」菜单；拖动行首手柄（或聚焦后按 ↑ ↓）调整顺序。',
             },
             h(
@@ -873,7 +885,7 @@ function createUi(react, createPortal) {
                 {
                   key: panel.id,
                   'data-entry': panel.id,
-                  className: 'dsh-sidebar-compact-entry',
+                  className: 'dsh-sidebar-function-manager-entry',
                   'data-dragging': drag && drag.id === panel.id ? 'true' : undefined,
                   'data-drop-target': drag && drag.overId === panel.id ? drag.position : undefined,
                   onDragOver: event => onDragOver(event, panel.id),
@@ -884,7 +896,7 @@ function createUi(react, createPortal) {
                 h('button', {
                   key: 'handle',
                   type: 'button',
-                  className: 'dsh-sidebar-compact-handle',
+                  className: 'dsh-sidebar-function-manager-handle',
                   draggable: true,
                   title: '拖动排序（触屏用 ↑ ↓）',
                   'aria-label': `拖动排序：${panel.label}`,
@@ -913,7 +925,7 @@ function createUi(react, createPortal) {
                       }),
                       h('button', {
                         type: 'button',
-                        className: 'dsh-sidebar-compact-move',
+                        className: 'dsh-sidebar-function-manager-move',
                         title: '上移',
                         'aria-label': `上移 ${panel.label}`,
                         disabled: index === 0,
@@ -921,7 +933,7 @@ function createUi(react, createPortal) {
                       }, h(MoveIcon, { up: true })),
                       h('button', {
                         type: 'button',
-                        className: 'dsh-sidebar-compact-move',
+                        className: 'dsh-sidebar-function-manager-move',
                         title: '下移',
                         'aria-label': `下移 ${panel.label}`,
                         disabled: index === panels.length - 1,
@@ -937,15 +949,15 @@ function createUi(react, createPortal) {
 
         ctx.slots.inject('sidebar.panellist.actions', () => ctx.slots.register({
           name: 'sidebar.panellist.actions',
-          id: 'sidebar-compact',
+          id: 'sidebar-function-manager',
           order: -10,
         }, FoldedPanelRows));
 
         ctx.slots.inject('settings.section', () => ctx.slots.register({
           name: 'settings.section',
-          id: 'sidebar-compact',
+          id: 'sidebar-function-manager',
           order: 210,
-          label: () => '侧栏收纳',
+          label: () => '侧边功能管理',
         }, SidebarEntriesSettings));
       },
     };
